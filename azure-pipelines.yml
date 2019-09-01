@@ -1,34 +1,74 @@
-jobs:
-- job: Linux
-  variables:
-    GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
-  pool:
-    vmImage: 'Ubuntu 16.04'
-  timeoutInMinutes: 150
-  steps:
-  - task: CacheBeta@0
-    inputs:
-      key: gradle | $(Agent.OS)
-      path: $(GRADLE_USER_HOME)
-    displayName: Gradle build cache
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.9.0'
-  - script: |
-      sudo ulimit -n 65535
-      nvm use 8.9.0
-      npm install -g npm@'5.6.0'
-    displayName: 'Build Prepare'
-  - task: Gradle@2
-    inputs:
-      gradleWrapperFile: 'gradlew'
-      tasks: 'build --console=plain --stacktrace -scan -x createJavadoc -Dorg.gradle.parallel=false'
-      publishJUnitResults: true
-      testResultsFiles: '**/TEST-*.xml'
-      jdkVersionOption: '1.8'
-    displayName: 'Build Ballerina'
-  - task: Gradle@2
-    inputs:
-      gradleWrapperFile: 'gradlew'
-      tasks: '--stop'
-    displayName: 'Stop Gradle'
+stages:
+  - stage: Verify
+    displayName: 'Build without tests'
+    jobs:
+      - job: Linux
+        variables:
+          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
+        pool:
+          vmImage: 'Ubuntu 16.04'
+        timeoutInMinutes: 60
+        steps:
+          - task: CacheBeta@0
+            inputs:
+              key: gradle | $(Agent.OS)
+              path: $(GRADLE_USER_HOME)
+            displayName: Gradle build cache
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '8.9.0'
+          - script: |
+              sudo ulimit -n 65535
+              nvm use 8.9.0
+              npm install -g npm@'5.6.0'
+            displayName: 'Build Prepare'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: 'build --console=plain --stacktrace -scan -x createJavadoc -x test'
+              publishJUnitResults: true
+              testResultsFiles: '**/TEST-*.xml'
+              jdkVersionOption: '1.8'
+            displayName: 'Build Ballerina'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: '--stop'
+            displayName: 'Stop Gradle'
+#      - job: Windows
+  - stage: Tests
+    dependsOn: Verify
+    jobs:
+      - job: Linux
+        variables:
+          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
+        pool:
+          vmImage: 'Ubuntu 16.04'
+        timeoutInMinutes: 120
+        steps:
+          - task: CacheBeta@0
+            inputs:
+              key: gradle | $(Agent.OS)
+              path: $(GRADLE_USER_HOME)
+            displayName: Gradle build cache
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '8.9.0'
+          - script: |
+              sudo ulimit -n 65535
+              nvm use 8.9.0
+              npm install -g npm@'5.6.0'
+            displayName: 'Build Prepare'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: 'test --console=plain --stacktrace -scan -Dorg.gradle.parallel=false'
+              publishJUnitResults: true
+              testResultsFiles: '**/TEST-*.xml'
+              jdkVersionOption: '1.8'
+            displayName: 'Build Ballerina'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: '--stop'
+            displayName: 'Stop Gradle'
