@@ -1,12 +1,29 @@
+# Copyright (c) 2019, WSO2 Inc. (http://wso2.com) All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Build runs in two stages.
+# -- Verify  - Verify build, running, check-styles, spotbugs, excluding all tests in Linux, Mac & Windows.
+# -- Test    - Run all tests in Linux.
 stages:
   - stage: Verify
-    displayName: 'Build without tests'
+    displayName: 'Build Verify'
     jobs:
       - job: Linux
-        variables:
-          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
         pool:
           vmImage: 'Ubuntu 16.04'
+        variables:
+          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
         timeoutInMinutes: 60
         steps:
           - task: CacheBeta@0
@@ -26,8 +43,6 @@ stages:
             inputs:
               gradleWrapperFile: 'gradlew'
               tasks: 'build --console=plain --stacktrace -scan -x createJavadoc -x test'
-              publishJUnitResults: true
-              testResultsFiles: '**/TEST-*.xml'
               jdkVersionOption: '1.8'
             displayName: 'Build Ballerina'
           - task: Gradle@2
@@ -35,7 +50,67 @@ stages:
               gradleWrapperFile: 'gradlew'
               tasks: '--stop'
             displayName: 'Stop Gradle'
-#      - job: Windows
+      - job: Mac
+        pool:
+          vmImage: 'macOS-10.14'
+        variables:
+          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
+        timeoutInMinutes: 60
+        steps:
+          - task: CacheBeta@0
+            inputs:
+              key: gradle | $(Agent.OS)
+              path: $(GRADLE_USER_HOME)
+            displayName: Gradle build cache
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '8.9.0'
+          - script: |
+              sudo ulimit -n 65535
+              nvm use 8.9.0
+              npm install -g npm@'5.6.0'
+            displayName: 'Build Prepare'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: 'build --console=plain --stacktrace -scan -x createJavadoc -x test'
+              jdkVersionOption: '1.8'
+            displayName: 'Build Ballerina'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: '--stop'
+            displayName: 'Stop Gradle'
+      - job: Windows
+        pool:
+          vmImage: 'VS2017-Win2016'
+        variables:
+          GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
+        timeoutInMinutes: 60
+        steps:
+          - task: CacheBeta@0
+            inputs:
+              key: gradle | $(Agent.OS)
+              path: $(GRADLE_USER_HOME)
+            displayName: Gradle build cache
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '8.9.0'
+          - script: |
+              nvm use 8.9.0
+              npm install -g npm@'5.6.0'
+            displayName: 'Build Prepare'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: 'build --console=plain --stacktrace -scan -x createJavadoc -x test'
+              jdkVersionOption: '1.8'
+            displayName: 'Build Ballerina'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: '--stop'
+            displayName: 'Stop Gradle'
   - stage: Tests
     dependsOn: Verify
     jobs:
@@ -62,13 +137,28 @@ stages:
           - task: Gradle@2
             inputs:
               gradleWrapperFile: 'gradlew'
-              tasks: 'test --console=plain --stacktrace -scan -Dorg.gradle.parallel=false'
+              tasks: 'test --console=plain -x :jballerina-integration-test'
               publishJUnitResults: true
               testResultsFiles: '**/TEST-*.xml'
               jdkVersionOption: '1.8'
-            displayName: 'Build Ballerina'
+            displayName: 'Test Ballerina'
+          - task: Gradle@2
+            inputs:
+              gradleWrapperFile: 'gradlew'
+              tasks: ':jballerina-integration-test:test --console=plain --stacktrace'
+              publishJUnitResults: true
+              testResultsFiles: '**/TEST-*.xml'
+              jdkVersionOption: '1.8'
+            displayName: 'Test Ballerina'
           - task: Gradle@2
             inputs:
               gradleWrapperFile: 'gradlew'
               tasks: '--stop'
             displayName: 'Stop Gradle'
+## Runs build daily midnight
+schedules:
+  - cron: "0 0 * * *"
+    displayName: Daily midnight build
+    branches:
+      include:
+        - master
