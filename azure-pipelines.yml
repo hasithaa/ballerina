@@ -1,17 +1,18 @@
 jobs:
-- job: macOS
-  pool:
-    vmImage: 'macOS 10.13'
-  timeoutInMinutes: 150
-  steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.12.0'
-  - script: |
-      sudo ulimit -n 65535
-      mvn -v
-      mvn clean install
-    displayName: 'Build Ballerina'
+#- job: macOS
+#  pool:
+#    vmImage: 'macOS 10.13'
+#  timeoutInMinutes: 150
+#  steps:
+#  - task: NodeTool@0
+#    inputs:
+#      versionSpec: '8.9.0'
+#  - script: |
+#      sudo ulimit -n 65535
+#      nvm use 8.9.0
+#      npm install -g npm@'5.6.0'
+#      ./gradlew build --console=plain --stacktrace -scan -x createJavadoc -Dorg.gradle.parallel=false
+#    displayName: 'Build Ballerina'
 - job: Linux
   pool:
     vmImage: 'Ubuntu 16.04'
@@ -19,24 +20,23 @@ jobs:
   steps:
   - task: NodeTool@0
     inputs:
-      versionSpec: '8.12.0'
+      versionSpec: '8.9.0'
   - script: |
       sudo ulimit -n 65535
-      wget http://www-eu.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz
-      tar xzf apache-maven-3.5.4-bin.tar.gz
-      export PATH=$(pwd)/apache-maven-3.5.4/bin:$PATH
-      mvn -v
-      mvn clean install
+      sudo ulimit -n 65535
+      nvm use 8.9.0
+      npm install -g npm@'5.6.0'
+      ./gradlew build --console=plain --stacktrace -scan -x createJavadoc
     displayName: 'Build Ballerina'
-- job: Windows
-  pool:
-    vmImage: 'VS2017-Win2016'
-  timeoutInMinutes: 150
-  steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '8.12.0'
-  - script: |
-      mvn -v
-      mvn clean install
-    displayName: 'Build Ballerina'
+#- job: Windows
+#  pool:
+#    vmImage: 'VS2017-Win2016'
+#  timeoutInMinutes: 150
+#  steps:
+#  - task: NodeTool@0
+#    inputs:
+#      versionSpec: '8.12.0'
+#  - script: |
+#      mvn -v
+#      mvn clean install
+#    displayName: 'Build Ballerina'
