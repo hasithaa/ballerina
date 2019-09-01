@@ -1,42 +1,37 @@
 jobs:
-#- job: macOS
-#  pool:
-#    vmImage: 'macOS 10.13'
-#  timeoutInMinutes: 150
-#  steps:
-#  - task: NodeTool@0
-#    inputs:
-#      versionSpec: '8.9.0'
-#  - script: |
-#      sudo ulimit -n 65535
-#      nvm use 8.9.0
-#      npm install -g npm@'5.6.0'
-#      ./gradlew build --console=plain --stacktrace -scan -x createJavadoc -Dorg.gradle.parallel=false
-#    displayName: 'Build Ballerina'
 - job: Linux
+  variables:
+    GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
   pool:
     vmImage: 'Ubuntu 16.04'
   timeoutInMinutes: 150
   steps:
+  - task: CacheBeta@0
+    inputs:
+      key: gradle | $(Agent.OS)
+      path: $(GRADLE_USER_HOME)
+    displayName: Gradle build cache
   - task: NodeTool@0
     inputs:
       versionSpec: '8.9.0'
   - script: |
       sudo ulimit -n 65535
-      sudo ulimit -n 65535
       nvm use 8.9.0
       npm install -g npm@'5.6.0'
-      ./gradlew build --console=plain --stacktrace -scan -x createJavadoc
+    displayName: 'Build Prepare'
+  - task: Gradle@2
+    inputs:
+      gradleWrapperFile: 'gradlew'
+      tasks: 'build --console=plain --stacktrace -scan -x createJavadoc'
+      publishJUnitResults: true
+      testResultsFiles: '**/TEST-*.xml' # Required when publishJUnitResults == True
+      jdkVersionOption: '1.8' # Optional. Options: default, 1.11, 1.10, 1.9, 1.8, 1.7, 1.6
+      #gradleOptions: '-Xmx1024m' # Optional
+      checkStyleRunAnalysis: true
+      findBugsRunAnalysis: true
     displayName: 'Build Ballerina'
-#- job: Windows
-#  pool:
-#    vmImage: 'VS2017-Win2016'
-#  timeoutInMinutes: 150
-#  steps:
-#  - task: NodeTool@0
-#    inputs:
-#      versionSpec: '8.12.0'
-#  - script: |
-#      mvn -v
-#      mvn clean install
-#    displayName: 'Build Ballerina'
+  - task: Gradle@2
+    inputs:
+      gradleWrapperFile: 'gradlew'
+      tasks: '--stop'
+    displayName: 'Stop Gradle'
