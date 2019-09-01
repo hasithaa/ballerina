@@ -27,8 +27,8 @@ jobs:
       testResultsFiles: '**/TEST-*.xml' # Required when publishJUnitResults == True
       jdkVersionOption: '1.8' # Optional. Options: default, 1.11, 1.10, 1.9, 1.8, 1.7, 1.6
       #gradleOptions: '-Xmx1024m' # Optional
-      checkStyleRunAnalysis: true
-      findBugsRunAnalysis: true
+      codeCoverageToolOption: 'jaCoCo'
+      codeCoverageClassFilter: +org.ballerinalang.* +org.wso2.ballerinalang.*
     displayName: 'Build Ballerina'
   - task: Gradle@2
     inputs:
