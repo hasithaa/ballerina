@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2021, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -15,23 +15,20 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.tools.diagnostics;
+package io.ballerina.compiler.linter.impl;
+
+import io.ballerina.compiler.syntax.tree.SyntaxKind;
+import io.ballerina.projects.plugins.AnalysisTask;
+import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
+
+import java.util.List;
 
 /**
- * Represents a diagnostic code.
- * <p>
- * Diagnostic code uniquely identifies a diagnostic.
+ * Abstract Linter Rule.
  *
  * @since 2.0.0
  */
-public interface DiagnosticCode {
-    DiagnosticSeverity severity();
+public abstract class LinterRule implements AnalysisTask<SyntaxNodeAnalysisContext> {
 
-    String diagnosticId();
-
-    String messageKey();
-
-    default String[] detailKeys() {
-        return new String[0];
-    }
+    public abstract List<SyntaxKind> getSyntaxKinds();
 }
