@@ -17,8 +17,18 @@
  */
 package io.ballerina.compiler.linter.impl;
 
+import io.ballerina.compiler.linter.impl.codeactions.RemoveParenthesesCodeAction;
+import io.ballerina.compiler.linter.impl.rules.ParenthesesUsageRule;
+import io.ballerina.projects.plugins.CodeAnalysisContext;
+import io.ballerina.projects.plugins.CodeAnalyzer;
 import io.ballerina.projects.plugins.CompilerPlugin;
 import io.ballerina.projects.plugins.CompilerPluginContext;
+import io.ballerina.projects.plugins.codeaction.CodeAction;
+import org.ballerinalang.compiler.BLangCompilerException;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A built-in compiler plugin, that implements Language Linter rules.
@@ -27,9 +37,58 @@ import io.ballerina.projects.plugins.CompilerPluginContext;
  */
 public class CompilerLinter extends CompilerPlugin {
 
+    private static final List<Class<? extends LinterRule>> RULES = new ArrayList<>();
+    private static final List<Class<? extends CodeAction>> CODE_ACTIONS = new ArrayList<>();
+
+    static {
+        RULES.add(ParenthesesUsageRule.class);
+
+        CODE_ACTIONS.add(RemoveParenthesesCodeAction.class);
+    }
+
     @Override
     public void init(CompilerPluginContext pluginContext) {
 
         pluginContext.addCodeAnalyzer(new LinterCodeAnalyzer());
+        registerCodeActions(pluginContext);
+    }
+
+    private void registerCodeActions(CompilerPluginContext pluginContext) {
+        for (Class<? extends CodeAction> codeActionClass : CODE_ACTIONS) {
+            try {
+                final CodeAction codeAction = codeActionClass.getDeclaredConstructor().newInstance();
+                pluginContext.addCodeAction(codeAction);
+            } catch (NoSuchMethodException | InstantiationException |
+                    IllegalAccessException | InvocationTargetException e) {
+                throw new BLangCompilerException("Failed to load linter code action :"
+                        + codeActionClass.getCanonicalName(), e);
+            }
+        }
+    }
+
+    /**
+     * The place where linter rule registers.
+     *
+     * @since 2.0.0
+     */
+    static class LinterCodeAnalyzer extends CodeAnalyzer {
+
+        @Override
+        public void init(CodeAnalysisContext analysisContext) {
+            registerLinterRules(analysisContext);
+        }
+
+        private void registerLinterRules(CodeAnalysisContext ctx) {
+
+            for (Class<? extends LinterRule> ruleClass : RULES) {
+                try {
+                    final LinterRule linterRule = ruleClass.getDeclaredConstructor().newInstance();
+                    ctx.addSyntaxNodeAnalysisTask(linterRule, linterRule.getSyntaxKinds());
+                } catch (NoSuchMethodException | InstantiationException |
+                        IllegalAccessException | InvocationTargetException e) {
+                    throw new BLangCompilerException("Failed to load linter plugin :" + ruleClass.getCanonicalName(), e);
+                }
+            }
+        }
     }
 }

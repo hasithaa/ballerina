@@ -15,13 +15,16 @@
  *  specific language governing permissions and limitations
  *  under the License.
  */
-package io.ballerina.compiler.linter.impl;
+package io.ballerina.compiler.linter;
 
 import io.ballerina.tools.diagnostics.DiagnosticCode;
 import io.ballerina.tools.diagnostics.DiagnosticSeverity;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static io.ballerina.compiler.linter.LinterConstants.DESCRIPTION;
+import static io.ballerina.compiler.linter.LinterConstants.NODE;
 
 /**
  * This class contains a list of diagnostic codes for Linter.
@@ -30,10 +33,13 @@ import java.util.List;
  */
 public enum LinterDiagnosticCodes implements DiagnosticCode {
 
+    /* Internal */
+
     /* Hints */
-    ADDITIONAL_PARENTHESES("BLH0100", "additional.parentheses", DiagnosticSeverity.HINT, List.of("description")),
+    ADDITIONAL_PARENTHESES("BLH0100", "additional.parentheses", DiagnosticSeverity.HINT, List.of(DESCRIPTION, NODE)),
 
     /* Warnings */;
+
 
     private final String diagnosticId;
     private final String messageKey;

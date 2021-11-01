@@ -17,10 +17,12 @@
  */
 package io.ballerina.compiler.linter.impl.rules;
 
-import io.ballerina.compiler.linter.impl.LinterDiagnosticCodes;
+import io.ballerina.compiler.linter.LinterDiagnosticCodes;
 import io.ballerina.compiler.linter.impl.LinterDiagnosticHelper;
 import io.ballerina.compiler.linter.impl.LinterRule;
 import io.ballerina.compiler.syntax.tree.BracedExpressionNode;
+import io.ballerina.compiler.syntax.tree.FunctionSignatureNode;
+import io.ballerina.compiler.syntax.tree.Node;
 import io.ballerina.compiler.syntax.tree.SyntaxKind;
 import io.ballerina.projects.plugins.SyntaxNodeAnalysisContext;
 
@@ -59,15 +61,29 @@ public class ParenthesesUsageRule extends LinterRule {
         if (SyntaxKind.IF_ELSE_STATEMENT == parentKind) {
             ctx.reportDiagnostic(LinterDiagnosticHelper.createDiagnostic(CODE, node.location(),
                     LinterDiagnosticHelper.getLinterProperty(CODE, MESSAGE),
-                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_CONDITIONAL_STMT, IF)));
+                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_CONDITIONAL_STMT, IF),
+                    List.of(node)));
         } else if (SyntaxKind.WHILE_STATEMENT == parentKind) {
             ctx.reportDiagnostic(LinterDiagnosticHelper.createDiagnostic(CODE, node.location(),
                     LinterDiagnosticHelper.getLinterProperty(CODE, MESSAGE),
-                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_CONDITIONAL_STMT, WHILE)));
-        } else if (parentKind == SyntaxKind.BRACED_EXPRESSION) {
-            ctx.reportDiagnostic(LinterDiagnosticHelper.createDiagnostic(CODE, node.location(),
+                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_CONDITIONAL_STMT, WHILE),
+                    List.of(node)));
+        } else if (parentKind == SyntaxKind.FUNCTION_SIGNATURE) {
+            FunctionSignatureNode parent = (FunctionSignatureNode) node.parent();
+        } else if (parentKind == SyntaxKind.BRACED_EXPRESSION || parentKind == SyntaxKind.BRACED_ACTION) {
+
+            // TODO : Avoid multiple hints, but reports duplicates.
+            Node currentParent = node.parent();
+            Node lastBracedNode = node.parent();
+            while (currentParent.kind() == SyntaxKind.BRACED_EXPRESSION
+                    || currentParent.kind() == SyntaxKind.BRACED_ACTION) {
+                lastBracedNode = currentParent;
+                currentParent = currentParent.parent();
+            }
+            ctx.reportDiagnostic(LinterDiagnosticHelper.createDiagnostic(CODE, lastBracedNode.location(),
                     LinterDiagnosticHelper.getLinterProperty(CODE, MESSAGE),
-                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_NESTED)));
+                    LinterDiagnosticHelper.getLinterProperty(CODE, DESCRIPTION_NESTED),
+                    List.of(lastBracedNode)));
         }
     }
 }
